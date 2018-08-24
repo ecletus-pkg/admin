@@ -38,7 +38,12 @@ func (p *Plugin) AssetsRootPath() string {
 }
 
 func (p *Plugin) OnRegister() {
+	plug.OnAssetFS(p, func(e *plug.AssetFSEvent) {
+		e.RegisterAssets(e.PathOf(&admin.Admin{}))
+	})
+
 	adminsCalled := map[string]bool{}
+
 	p.On(E_ADMIN, func(e plug.PluginEventInterface) (err error) {
 		adminEvent := e.(*AdminEvent)
 		if _, ok := adminsCalled[adminEvent.AdminName]; ok {
