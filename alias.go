@@ -1,6 +1,6 @@
 package admin_plugin
 
-import "github.com/aghape/admin"
+import "github.com/ecletus/admin"
 
 type Config = admin.Config
 type SubConfig = admin.SubConfig

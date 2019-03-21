@@ -1,8 +1,8 @@
 package admin_plugin
 
 import (
-	"github.com/aghape/admin"
-	"github.com/aghape/plug"
+	"github.com/ecletus/admin"
+	"github.com/ecletus/plug"
 	"github.com/moisespsena-go/xroute"
 	"github.com/moisespsena/go-error-wrap"
 )

@@ -1,2 +1,2 @@
 # admin
-Default Admin Plugin for https://github.com/aghape framework
+Default Admin Plugin for https://github.com/ecletus framework

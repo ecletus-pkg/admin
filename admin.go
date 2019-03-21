@@ -3,18 +3,18 @@ package admin_plugin
 import (
 	"path/filepath"
 
-	"github.com/aghape/assets"
+	"github.com/ecletus/assets"
 	"github.com/gobwas/glob"
 
 	"github.com/moisespsena-go/aorm"
 
-	"github.com/aghape/db"
+	"github.com/ecletus/db"
 
 	"strings"
 
-	"github.com/aghape/admin"
-	"github.com/aghape/plug"
-	"github.com/aghape/router"
+	"github.com/ecletus/admin"
+	"github.com/ecletus/plug"
+	"github.com/ecletus/router"
 	"github.com/moisespsena-go/xroute"
 	"github.com/moisespsena/go-error-wrap"
 	"github.com/moisespsena/go-path-helpers"
@@ -39,11 +39,11 @@ func (p *Plugin) RequireOptions() []string {
 }
 
 func (p *Plugin) NameSpace() string {
-	return filepath.Join("github.com", "aghape", "admin")
+	return filepath.Join("github.com", "ecletus", "admin")
 }
 
 func (p *Plugin) AssetsRootPath() string {
-	return path_helpers.ResolveGoSrcPath("github.com", "aghape", "admin")
+	return path_helpers.ResolveGoSrcPath("github.com", "ecletus", "admin")
 }
 
 func (p *Plugin) OnRegister(options *plug.Options) {
@@ -75,7 +75,7 @@ func (p *Plugin) OnRegister(options *plug.Options) {
 		if systemDialect := options.GetString(p.SystemDBDialectKey, Admin.Config.FakeDBDialect); systemDialect != Admin.Config.FakeDBDialect {
 			Admin.FakeDB = aorm.FakeDB(systemDialect)
 		}
-		// github.com/aghape-pkg/admin
+		// github.com/ecletus-pkg/admin
 		//
 		log.Debugf("trigger AdminEvent")
 		if err = e.PluginDispatcher().TriggerPlugins(&AdminEvent{plug.NewPluginEvent(EAdmin(adminName)), Admin, adminName, e}); err != nil {

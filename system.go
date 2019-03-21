@@ -1,8 +1,8 @@
 package admin_plugin
 
 import (
-	"github.com/aghape/admin"
-	"github.com/aghape/db"
+	"github.com/ecletus/admin"
+	"github.com/ecletus/db"
 )
 
 func initResources(e *AdminEvent) {

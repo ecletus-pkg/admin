@@ -3,8 +3,8 @@ package admin_plugin
 import (
 	"reflect"
 
-	"github.com/aghape/admin"
-	"github.com/aghape/plug"
+	"github.com/ecletus/admin"
+	"github.com/ecletus/plug"
 	"github.com/moisespsena/go-edis"
 )
 
