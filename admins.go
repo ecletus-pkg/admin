@@ -20,6 +20,7 @@ func (a *Admins) Set(name string, Admin *admin.Admin) {
 		Admin.SiteName = name
 	}
 
+	Admin.Name = name
 	Admin.Init()
 }
 

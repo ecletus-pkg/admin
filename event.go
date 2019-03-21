@@ -3,8 +3,8 @@ package admin_plugin
 import (
 	"github.com/aghape/admin"
 	"github.com/aghape/plug"
+	"github.com/moisespsena-go/xroute"
 	"github.com/moisespsena/go-error-wrap"
-	"github.com/moisespsena/go-route"
 )
 
 var (
@@ -32,11 +32,11 @@ func (afm *AdminFuncMapEvent) Register(name string, value interface{}) {
 
 type AdminRouterEvent struct {
 	*AdminEvent
-	Mux *route.Mux
+	router xroute.Router
 }
 
-func (are *AdminRouterEvent) Router() *admin.Router {
-	return are.Admin.Router
+func (are *AdminRouterEvent) Router() xroute.Router {
+	return are.router
 }
 
 func EAdmin(adminKey string) string {

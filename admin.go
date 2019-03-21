@@ -3,12 +3,19 @@ package admin_plugin
 import (
 	"path/filepath"
 
+	"github.com/aghape/assets"
+	"github.com/gobwas/glob"
+
+	"github.com/moisespsena-go/aorm"
+
+	"github.com/aghape/db"
+
 	"strings"
 
 	"github.com/aghape/admin"
 	"github.com/aghape/plug"
 	"github.com/aghape/router"
-	"github.com/moisespsena/go-default-logger"
+	"github.com/moisespsena-go/xroute"
 	"github.com/moisespsena/go-error-wrap"
 	"github.com/moisespsena/go-path-helpers"
 )
@@ -17,32 +24,45 @@ const DEFAULT_ADMIN = "default"
 
 var (
 	PKG = path_helpers.GetCalledDir()
-	log = defaultlogger.NewLogger(PKG)
 )
 
 type Plugin struct {
 	plug.EventDispatcher
-	AdminsKey string
+	db.DBNames
+
+	AdminsKey          string
+	SystemDBDialectKey string
 }
 
 func (p *Plugin) RequireOptions() []string {
-	return []string{p.AdminsKey}
+	return []string{p.AdminsKey, p.SystemDBDialectKey}
 }
 
 func (p *Plugin) NameSpace() string {
-	return filepath.Dir(path_helpers.GetCalledDir(false))
+	return filepath.Join("github.com", "aghape", "admin")
 }
 
 func (p *Plugin) AssetsRootPath() string {
-	return filepath.Dir(path_helpers.GetCalledDir(true))
+	return path_helpers.ResolveGoSrcPath("github.com", "aghape", "admin")
 }
 
-func (p *Plugin) OnRegister() {
-	plug.OnAssetFS(p, func(e *plug.AssetFSEvent) {
-		e.RegisterAssets(e.PathOf(&admin.Admin{}))
+func (p *Plugin) OnRegister(options *plug.Options) {
+	plug.OnFS(p, func(e *plug.FSEvent) {
+		e.RegisterAssetPath(e.PathOf(&admin.Admin{}))
+	})
+
+	_ = plug.OnPostInit(p, func(e plug.PluginEventInterface) {
+		admins := options.GetInterface(p.AdminsKey).(*Admins)
+		Events(p, func() []string {
+			return admins.Names()
+		}).InitResources(initResources)
+
+		db.Events(p).DBOnMigrate(migrate)
 	})
 
 	adminsCalled := map[string]bool{}
+
+	log := p.Logger()
 
 	p.On(E_ADMIN, func(e plug.PluginEventInterface) (err error) {
 		adminEvent := e.(*AdminEvent)
@@ -51,6 +71,12 @@ func (p *Plugin) OnRegister() {
 		}
 		adminsCalled[adminEvent.AdminName] = true
 		adminName, Admin := adminEvent.AdminName, adminEvent.Admin
+
+		if systemDialect := options.GetString(p.SystemDBDialectKey, Admin.Config.FakeDBDialect); systemDialect != Admin.Config.FakeDBDialect {
+			Admin.FakeDB = aorm.FakeDB(systemDialect)
+		}
+		// github.com/aghape-pkg/admin
+		//
 		log.Debugf("trigger AdminEvent")
 		if err = e.PluginDispatcher().TriggerPlugins(&AdminEvent{plug.NewPluginEvent(EAdmin(adminName)), Admin, adminName, e}); err != nil {
 			return errwrap.Wrap(err, "AdminEvent")
@@ -73,7 +99,7 @@ func (p *Plugin) OnRegister() {
 		return nil
 	})
 
-	router.OnRouteE(p, func(e *router.RouterEvent) (err error) {
+	err := router.OnRouteE(p, func(e *router.RouterEvent) (err error) {
 		admins := e.Options().GetInterface(p.AdminsKey).(*Admins)
 		err = admins.Trigger(e.PluginDispatcher())
 		if err != nil {
@@ -81,12 +107,28 @@ func (p *Plugin) OnRegister() {
 		}
 		return admins.Each(func(adminName string, Admin *admin.Admin) error {
 			log.Debugf("[admin=%q] mounted on %v", adminName, Admin.Config.MountPath)
-			mux := Admin.NewServeMux()
-			e.Router.Mux.Mount(Admin.Config.MountPath, mux)
+			var router xroute.Router = e.Router.Mux
+			if Admin.Config.MountPath != "/" {
+				router = xroute.NewMux(Admin.Name)
+				Admin.InitRoutes(router)
+				e.Router.Mux.Mount(Admin.Config.MountPath, router)
+			} else {
+				Admin.InitRoutes(router)
+			}
 			return errwrap.Wrap(e.PluginDispatcher().TriggerPlugins(&AdminRouterEvent{&AdminEvent{
 				plug.NewPluginEvent(ERoute(adminName)), Admin,
-				adminName, e}, mux}),
+				adminName, e}, router}),
 				"AdminRouterEvent")
 		})
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	assets.Dis(p).OnSyncConfig(func(e *assets.PreRepositorySyncEvent) {
+		e.Repo.IgnorePath(
+			glob.MustCompile("static/admin/javascripts/{app,qor}").Match,
+			glob.MustCompile("*.map").Match,
+		)
 	})
 }

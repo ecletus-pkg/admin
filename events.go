@@ -43,6 +43,8 @@ func Events(args ...interface{}) (d *events) {
 	}
 	for _, arg := range args {
 		switch at := arg.(type) {
+		case func() []string:
+			d.SetNamesFunc(at)
 		case *AdminNames:
 			d.Names = at
 		case edis.EventDispatcherInterface:
@@ -55,6 +57,11 @@ func Events(args ...interface{}) (d *events) {
 		}
 	}
 	return
+}
+
+func (e *events) SetNamesFunc(f func() []string) *events {
+	e.Names = &AdminNames{NamesFunc: f}
+	return e
 }
 
 func (dn *events) EachOrAll(e plug.PluginEventInterface, cb func(adminName string, Admin *admin.Admin) (err error)) (err error) {
