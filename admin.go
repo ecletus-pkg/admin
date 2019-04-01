@@ -42,8 +42,9 @@ func (p *Plugin) NameSpace() string {
 	return filepath.Join("github.com", "ecletus", "admin")
 }
 
-func (p *Plugin) AssetsRootPath() string {
-	return path_helpers.ResolveGoSrcPath("github.com", "ecletus", "admin")
+func (p *Plugin) AssetsRootPath() (pth string) {
+	_, pth = path_helpers.ResolveGoSrcPath("github.com", "ecletus", "admin")
+	return
 }
 
 func (p *Plugin) OnRegister(options *plug.Options) {
