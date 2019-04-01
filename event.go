@@ -4,7 +4,7 @@ import (
 	"github.com/ecletus/admin"
 	"github.com/ecletus/plug"
 	"github.com/moisespsena-go/xroute"
-	"github.com/moisespsena/go-error-wrap"
+	"github.com/moisespsena-go/error-wrap"
 )
 
 var (

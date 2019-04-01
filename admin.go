@@ -16,7 +16,7 @@ import (
 	"github.com/ecletus/plug"
 	"github.com/ecletus/router"
 	"github.com/moisespsena-go/xroute"
-	"github.com/moisespsena/go-error-wrap"
+	"github.com/moisespsena-go/error-wrap"
 	"github.com/moisespsena-go/path-helpers"
 )
 
