@@ -5,7 +5,7 @@ import (
 
 	"github.com/ecletus/admin"
 	"github.com/ecletus/plug"
-	"github.com/moisespsena/go-edis"
+	"github.com/moisespsena-go/edis"
 )
 
 type events struct {
