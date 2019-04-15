@@ -43,7 +43,7 @@ func (p *Plugin) NameSpace() string {
 }
 
 func (p *Plugin) AssetsRootPath() (pth string) {
-	_, pth = path_helpers.ResolveGoSrcPath("github.com", "ecletus", "admin")
+	pth = filepath.Join(path_helpers.GetCalledDir(true), "..", "..", "ecletus", "admin")
 	return
 }
 
