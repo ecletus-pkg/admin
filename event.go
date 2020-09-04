@@ -1,10 +1,13 @@
 package admin_plugin
 
 import (
-	"github.com/ecletus/admin"
 	"github.com/ecletus/plug"
-	"github.com/moisespsena-go/xroute"
 	"github.com/moisespsena-go/error-wrap"
+	"github.com/moisespsena-go/logging"
+	"github.com/moisespsena-go/path-helpers"
+	"github.com/moisespsena-go/xroute"
+
+	"github.com/ecletus/admin"
 )
 
 var (
@@ -13,6 +16,8 @@ var (
 	E_ADMIN_FUNC_MAP       = E_ADMIN + ".funcMap"
 	E_ADMIN_ROUTE          = E_ADMIN + ".route"
 	E_ADMIN_INIT_RESOURCES = E_ADMIN + ".initResources"
+
+	log = logging.GetOrCreateLogger(path_helpers.GetCalledDir())
 )
 
 type AdminEvent struct {
@@ -75,11 +80,10 @@ func EInitResources(adminName string) string {
 }
 
 func (admins *Admins) Trigger(d plug.PluginEventDispatcherInterface) error {
-	return admins.Each(func(adminName string, Admin *admin.Admin) (err error) {
-		e := &AdminEvent{plug.NewPluginEvent(E_ADMIN), Admin, adminName, nil}
-		if err = d.TriggerPlugins(e); err != nil {
-			return errwrap.Wrap(err, "Admin %q: event %q", adminName, e.Name())
-		}
-		return nil
-	})
+	Admin := admins.GetDefault()
+	e := &AdminEvent{plug.NewPluginEvent(E_ADMIN), Admin, DEFAULT_ADMIN, nil}
+	if err := d.TriggerPlugins(e); err != nil {
+		return errwrap.Wrap(err, "Admin %q: event %q", DEFAULT_ADMIN, e.Name())
+	}
+	return nil
 }

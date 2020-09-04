@@ -21,6 +21,7 @@ func (dn *AdminNames) EachOrDefault(cb func(adminName string)) {
 		return nil
 	})
 }
+
 func (a *AdminNames) GetNames() []string {
 	if a.NamesFunc != nil {
 		names := a.NamesFunc()

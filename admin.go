@@ -3,9 +3,6 @@ package admin_plugin
 import (
 	"path/filepath"
 
-	"github.com/ecletus/assets"
-	"github.com/gobwas/glob"
-
 	"github.com/moisespsena-go/aorm"
 
 	"github.com/ecletus/db"
@@ -15,9 +12,9 @@ import (
 	"github.com/ecletus/admin"
 	"github.com/ecletus/plug"
 	"github.com/ecletus/router"
+	errwrap "github.com/moisespsena-go/error-wrap"
+	path_helpers "github.com/moisespsena-go/path-helpers"
 	"github.com/moisespsena-go/xroute"
-	"github.com/moisespsena-go/error-wrap"
-	"github.com/moisespsena-go/path-helpers"
 )
 
 const DEFAULT_ADMIN = "default"
@@ -26,12 +23,38 @@ var (
 	PKG = path_helpers.GetCalledDir()
 )
 
+type AdminGetter struct {
+	admins      *Admins
+	initialized bool
+	dispatcher  plug.PluginEventDispatcherInterface
+}
+
+func (this *AdminGetter) GetInitialized(name string) (Admin *admin.Admin) {
+	this.Initialize()
+	return this.admins.ByName[name]
+}
+
+func (this *AdminGetter) Initialize() {
+	if !this.initialized {
+		this.initialized = true
+		err := this.admins.Trigger(this.dispatcher)
+		if err != nil {
+			panic(errwrap.Wrap(err, "Trigger Admins [%s]", strings.Join(this.admins.Names(), ", ")))
+		}
+	}
+}
+
 type Plugin struct {
 	plug.EventDispatcher
 	db.DBNames
 
-	AdminsKey          string
-	SystemDBDialectKey string
+	AdminsKey, AdminGetterKey string
+	SystemDBDialectKey        string
+	initialized               bool
+}
+
+func (p *Plugin) ProvideOptions() []string {
+	return []string{p.AdminGetterKey}
 }
 
 func (p *Plugin) RequireOptions() []string {
@@ -47,17 +70,27 @@ func (p *Plugin) AssetsRootPath() (pth string) {
 	return
 }
 
+func (p *Plugin) ProvidesOptions(options *plug.Options) {
+	dis := plug.Dis(options)
+	admins := options.GetInterface(p.AdminsKey).(*Admins)
+	getter := &AdminGetter{
+		admins:     admins,
+		dispatcher: dis,
+	}
+	options.Set(p.AdminGetterKey, getter)
+}
+
+func (p *Plugin) Init(options *plug.Options) {
+	options.GetInterface(p.AdminGetterKey).(*AdminGetter).Initialize()
+}
+
 func (p *Plugin) OnRegister(options *plug.Options) {
 	plug.OnFS(p, func(e *plug.FSEvent) {
 		e.RegisterAssetPath(e.PathOf(&admin.Admin{}))
 	})
 
 	_ = plug.OnPostInit(p, func(e plug.PluginEventInterface) {
-		admins := options.GetInterface(p.AdminsKey).(*Admins)
-		Events(p, func() []string {
-			return admins.Names()
-		}).InitResources(initResources)
-
+		Events(p).InitResources(initResources)
 		db.Events(p).DBOnMigrate(migrate)
 	})
 
@@ -101,11 +134,9 @@ func (p *Plugin) OnRegister(options *plug.Options) {
 	})
 
 	err := router.OnRouteE(p, func(e *router.RouterEvent) (err error) {
-		admins := e.Options().GetInterface(p.AdminsKey).(*Admins)
-		err = admins.Trigger(e.PluginDispatcher())
-		if err != nil {
-			return errwrap.Wrap(err, "Trigger Admins [%s]", strings.Join(admins.Names(), ", "))
-		}
+		getter := options.GetInterface(p.AdminGetterKey).(*AdminGetter)
+		admins := getter.admins
+		getter.Initialize()
 		return admins.Each(func(adminName string, Admin *admin.Admin) error {
 			log.Debugf("[admin=%q] mounted on %v", adminName, Admin.Config.MountPath)
 			var router xroute.Router = e.Router.Mux
@@ -125,11 +156,4 @@ func (p *Plugin) OnRegister(options *plug.Options) {
 	if err != nil {
 		panic(err)
 	}
-
-	assets.Dis(p).OnSyncConfig(func(e *assets.PreRepositorySyncEvent) {
-		e.Repo.IgnorePath(
-			glob.MustCompile("static/admin/javascripts/{app,qor}").Match,
-			glob.MustCompile("*.map").Match,
-		)
-	})
 }
